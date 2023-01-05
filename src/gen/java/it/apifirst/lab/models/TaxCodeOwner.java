@@ -14,7 +14,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * The owner of tax code
  **/
 
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2023-01-05T12:22:30.422909+01:00[Europe/Rome]")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2023-01-05T17:43:07.242068+01:00[Europe/Rome]")
 public class TaxCodeOwner implements Serializable {
 
     private @Valid String taxCode;

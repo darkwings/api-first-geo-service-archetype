@@ -16,7 +16,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * Lombardy etc). It is purely an implementor&#39;s choice, the important is that the code is unique.
  **/
 
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2023-01-05T12:22:30.422909+01:00[Europe/Rome]")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2023-01-05T17:43:07.242068+01:00[Europe/Rome]")
 public class Region implements Serializable {
 
     private @Valid String regionId;

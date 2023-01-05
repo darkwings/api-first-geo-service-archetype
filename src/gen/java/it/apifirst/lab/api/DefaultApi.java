@@ -22,7 +22,7 @@ import javax.validation.constraints.*;
 import javax.validation.Valid;
 
 @Path("")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2023-01-05T12:22:30.422909+01:00[Europe/Rome]")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2023-01-05T17:43:07.242068+01:00[Europe/Rome]")
 public interface DefaultApi {
 
     @GET
@@ -33,7 +33,7 @@ public interface DefaultApi {
             @PathParam("region_id") @Pattern(regexp = "[A-Za-z0-9]+") @Size(max = 10) String regionId,
             @QueryParam("lang") @Pattern(regexp = "[A-Za-z]{2}") @Size(max = 2) @DefaultValue("it") String lang,
             @QueryParam("limit") @DecimalMin("0") @DecimalMax("50") @DefaultValue("20") BigDecimal limit,
-            @QueryParam("offset") @DecimalMax("100000") @DefaultValue("0") BigDecimal offset) {
+            @QueryParam("offset") @DecimalMin("0") @DefaultValue("0") BigDecimal offset) {
         throw new NotImplementedYetException();
     }
 
@@ -66,7 +66,7 @@ public interface DefaultApi {
     default InlineResponse2001 getApiGeoCountriesCountryCode(
             @PathParam("country_id") @Pattern(regexp = "[A-Za-z]{2}") @Size(max = 2) String countryId,
             @QueryParam("lang") @Pattern(regexp = "[A-Za-z]{2}") @Size(max = 2) @DefaultValue("it") String lang,
-            @QueryParam("offset") @DecimalMax("100000") @DefaultValue("0") BigDecimal offset,
+            @QueryParam("offset") @DecimalMin("0") @DefaultValue("0") BigDecimal offset,
             @QueryParam("limit") @DecimalMin("0") @DecimalMax("50") @DefaultValue("20") BigDecimal limit) {
         throw new NotImplementedYetException();
     }
@@ -79,7 +79,7 @@ public interface DefaultApi {
             @PathParam("region_id") @Pattern(regexp = "[A-Za-z0-9]+") @Size(max = 10) String regionId,
             @PathParam("province_id") @Pattern(regexp = "[A-Za-z0-9]+") @Size(max = 10) String provinceId,
             @QueryParam("lang") @Pattern(regexp = "[A-Za-z]{2}") @Size(max = 2) @DefaultValue("it") String lang,
-            @QueryParam("offset") @DecimalMax("100000") @DefaultValue("0") BigDecimal offset,
+            @QueryParam("offset") @DecimalMin("0") @DefaultValue("0") BigDecimal offset,
             @QueryParam("limit") @DecimalMin("0") @DecimalMax("50") @DefaultValue("20") BigDecimal limit) {
         throw new NotImplementedYetException();
     }
@@ -89,7 +89,7 @@ public interface DefaultApi {
     @Produces({ "application/json" })
     default InlineResponse200 getCountries(
             @QueryParam("lang") @Pattern(regexp = "[A-Za-z]{2}") @Size(max = 2) @DefaultValue("it") String lang,
-            @QueryParam("offset") @DecimalMax("100000") @DefaultValue("0") BigDecimal offset,
+            @QueryParam("offset") @DecimalMin("0") @DefaultValue("0") BigDecimal offset,
             @QueryParam("limit") @DecimalMin("0") @DecimalMax("50") @DefaultValue("20") BigDecimal limit) {
         throw new NotImplementedYetException();
     }
@@ -109,7 +109,7 @@ public interface DefaultApi {
     @Produces({ "application/json" })
     default InlineResponse2002 postCitiesSearch(
             @QueryParam("lang") @Pattern(regexp = "[A-Za-z]{2}") @Size(max = 2) @DefaultValue("it") String lang,
-            @QueryParam("offset") @DecimalMax("100000") @DefaultValue("0") BigDecimal offset,
+            @QueryParam("offset") @DecimalMin("0") @DefaultValue("0") BigDecimal offset,
             @QueryParam("limit") @DecimalMin("0") @DecimalMax("50") @DefaultValue("20") BigDecimal limit,
             @Valid InlineObject1 inlineObject1) {
         throw new NotImplementedYetException();
@@ -122,7 +122,7 @@ public interface DefaultApi {
             @PathParam("country_id") @Pattern(regexp = "[A-Za-z]{2}") @Size(max = 2) String countryId,
             @PathParam("region_id") @Pattern(regexp = "[A-Za-z0-9]+") @Size(max = 10) String regionId,
             @QueryParam("lang") @Pattern(regexp = "[A-Za-z]{2}") @Size(max = 2) @DefaultValue("it") String lang,
-            @QueryParam("offset") @DecimalMax("100000") @DefaultValue("0") BigDecimal offset,
+            @QueryParam("offset") @DecimalMin("0") @DefaultValue("0") BigDecimal offset,
             @QueryParam("limit") @DecimalMin("0") @DecimalMax("50") @DefaultValue("20") BigDecimal limit) {
         throw new NotImplementedYetException();
     }
