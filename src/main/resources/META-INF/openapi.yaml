@@ -1,0 +1,3974 @@
+openapi: 3.0.0
+info:
+  contact:
+    email: support@wefox.com
+    name: Wefox
+    url: https://wefox.com
+  description: |-
+    API exposed by the new GEO Service, which allows to query for cities given (country/region) or (country/region/province).
+
+    The IDs shown in the examples are examples. For simplicity some examples show subsequent IDs, but IDs should not be autoincremental, for security reasons it's better to use UUID instead.
+
+    **The names of countries, regions and cities returned by all endpoints are all lowercase**. It's up to users to format the name: capitalize first letter or uppercase.
+  title: geo-service
+  version: "1.0"
+servers:
+- description: Local
+  url: http://localhost:8080/geo
+security:
+- API Key - 1: []
+paths:
+  /countries:
+    get:
+      description: |-
+        Get all countries. The names are resolved based on requested language (default `it`).
+
+        This API is paginated. The parameters `limit` and `offset` could be omitted but default values will be used. The 'links' section includes the link to navigate the collection.
+
+        See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+      operationId: get-countries
+      parameters:
+      - allowEmptyValue: true
+        description: the language in which we want to receive the data, expressed
+          in iso 639-1 format
+        explode: true
+        in: query
+        name: lang
+        required: false
+        schema:
+          default: it
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: form
+      - allowEmptyValue: true
+        description: the offset to start
+        explode: true
+        in: query
+        name: offset
+        required: false
+        schema:
+          default: 0
+          maximum: 100000
+          type: number
+        style: form
+      - allowEmptyValue: true
+        description: the page size, for collection APIs
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 20
+          maximum: 50
+          minimum: 0
+          type: number
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                Example 1 (api called with lang=en):
+                  value:
+                    data:
+                    - country_id: it
+                      name: italy
+                      phone_code: "39"
+                      deleted: false
+                    - country_id: es
+                      name: spain
+                      phone_code: "34"
+                      deleted: false
+                    - country_id: de
+                      name: germany
+                      phone_code: "49"
+                      deleted: false
+                    links:
+                    - href: /geo/countries?offset=0&limit=20&lang=en
+                      rel: first
+                    - href: /geo/countries?offset=20&limit=20&lang=en
+                      rel: prev
+                    - href: /geo/countries?offset=60&limit=20&lang=en
+                      rel: next
+                    - href: /geo/countries?offset=230&limit=20&lang=en
+                      rel: last
+                    metadata:
+                      current_offset: 40
+                      total_count: 239
+                Example 2 (api called with lang=it):
+                  value:
+                    data:
+                    - country_id: it
+                      name: italia
+                      phone_code: "39"
+                      deleted: false
+                    - country_id: es
+                      name: spagna
+                      deleted: false
+                      phone_code: "34"
+                    - country_id: de
+                      name: germania
+                      deleted: false
+                      phone_code: "49"
+                    links:
+                    - href: /geo/countries?offset=0&limit=20&lang=it
+                      rel: first
+                    - href: /geo/countries?offset=20&limit=20&lang=it
+                      rel: prev
+                    - href: /geo/countries?offset=60&limit=20&lang=it
+                      rel: next
+                    - null
+                    - href: /geo/countries?offset=230&limit=20&lang=it
+                      rel: last
+                    metadata:
+                      current_offset: 40
+                      total_count: 239
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+          description: |-
+            List of countries, ordered by name. The examples show a minimal subset of the countries just to give an idea. Let's suppose that in each result we'll find a number of results equals to `limit` parameter.
+
+            See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+
+            The examples shows a subset of the results. Example 1 shows the result when called with `lang=en`, while Example 2 shows the list with `lang=it`.
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "401":
+          content:
+            application/json:
+              examples:
+                HTTP 401 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: Some error description
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Unauthorized
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "403":
+          content:
+            application/json:
+              examples:
+                HTTP 403 body:
+                  value:
+                    errors:
+                    - code: ERR403
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Forbidden access
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "500":
+          content:
+            application/json:
+              examples:
+                HTTP 500 body:
+                  value:
+                    errors:
+                    - code: ERR500
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Error response
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+      summary: All Countries
+      tags: []
+      x-accepts: application/json
+      x-tags: []
+  /countries/{country_id}/regions:
+    get:
+      description: |
+        Retrieves all the states/region of a country. For US (or a federated country like Germany), it returns the list of states. The names are resolved based on requested language (default `it`).
+
+        The `links` section includes the link to navigate the collection. It could be empty when results number is lower than `limit`.
+
+        See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+
+        The result is always ordered by name
+
+        Example 1 shows italian regions when `lang=it`.
+        Example 2 shows german lander when `lang=de`
+        Example 3 shows italian regions when `lang=en` (notice the different order of the collection, if compared to the results when lang=it)
+      operationId: get-api-geo-countries-country_code
+      parameters:
+      - explode: false
+        in: path
+        name: country_id
+        required: true
+        schema:
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: simple
+      - allowEmptyValue: true
+        description: the language in which we want to receive the data, expressed
+          in iso 639-1 format
+        explode: true
+        in: query
+        name: lang
+        required: false
+        schema:
+          default: it
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: form
+      - allowEmptyValue: true
+        description: the offset to start
+        explode: true
+        in: query
+        name: offset
+        required: false
+        schema:
+          default: 0
+          maximum: 100000
+          type: number
+        style: form
+      - allowEmptyValue: true
+        description: the page size, for collection APIs
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 20
+          maximum: 50
+          minimum: 0
+          type: number
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                Example 1 (italian regions with lang=it):
+                  value:
+                    data:
+                    - region_id: it-ab
+                      name: abruzzo
+                      deleted: false
+                      country_id: it
+                    - region_id: it-ba
+                      name: basilicata
+                      deleted: false
+                      country_id: it
+                    - region_id: it-cal
+                      name: Calabria
+                      deleted: false
+                      country_id: it
+                    - region_id: it-ca
+                      name: Campania
+                      deleted: false
+                      country_id: it
+                    - region_id: it-er
+                      name: emilia romagna
+                      deleted: false
+                      country_id: it
+                    - region_id: it-fvg
+                      name: friuli venezia giulia
+                      deleted: false
+                      country_id: it
+                    - region_id: it-la
+                      name: lazio
+                      deleted: false
+                      country_id: it
+                    - region_id: it-li
+                      name: liguria
+                      deleted: false
+                      country_id: it
+                    - region_id: it-lo
+                      name: lombardia
+                      deleted: false
+                      country_id: it
+                    - region_id: it-ma
+                      name: marche
+                      deleted: false
+                      country_id: it
+                    - region_id: it-mo
+                      name: molise
+                      deleted: false
+                      country_id: it
+                    - region_id: it-pi
+                      name: piemonte
+                      deleted: false
+                      country_id: it
+                    - region_id: it-pat
+                      name: provincia autonoma di trento
+                      deleted: false
+                      country_id: it
+                    - region_id: it-pab
+                      name: provincia autonoma di bolzano
+                      deleted: false
+                      country_id: it
+                    - region_id: it-pu
+                      name: puglia
+                      deleted: false
+                      country_id: it
+                    - region_id: it-sa
+                      name: sardegna
+                      deleted: false
+                      country_id: it
+                    - region_id: it-si
+                      name: sicilia
+                      deleted: false
+                      country_id: it
+                    - region_id: it-to
+                      name: Toscana
+                      deleted: false
+                      country_id: it
+                    - region_id: it-tr
+                      name: trentino
+                      deleted: false
+                      country_id: it
+                    - region_id: it-um
+                      name: umbria
+                      deleted: false
+                      country_id: it
+                    - region_id: it-va
+                      name: valle d'aosta
+                      deleted: false
+                      country_id: it
+                    - region_id: it-ve
+                      name: veneto
+                      deleted: false
+                      country_id: it
+                    links:
+                    - href: /geo/countries/it/regions?offset=20&limit=20&lang=it
+                      rel: next
+                    - href: /geo/countries/it/regions?offset=20&limit=20&lang=it
+                      rel: last
+                    metadata:
+                      current_offset: 0
+                      total_count: 22
+                Example 2 (german regions, or lander, with lang=de):
+                  value:
+                    data:
+                    - region_id: de-bw
+                      name: baden-württemberg
+                      deleted: false
+                      country_id: de
+                    - region_id: de-ba
+                      name: bayern
+                      deleted: false
+                      country_id: de
+                    - region_id: de-be
+                      name: berlin
+                      deleted: false
+                    - region_id: de-br
+                      name: brandenburg
+                      deleted: false
+                      country_id: de
+                    - region_id: DE005
+                      name: bremen
+                      deleted: false
+                      country_id: de
+                    - region_id: de-ha
+                      name: hamburg
+                      deleted: false
+                    - region_id: de-he
+                      name: hessen
+                      deleted: false
+                      country_id: de
+                    - region_id: de-mv
+                      name: mecklenburg-vorpommern
+                      deleted: false
+                      country_id: de
+                    - region_id: de-ni
+                      name: niedersachsen
+                      deleted: false
+                      country_id: de
+                    - region_id: de-nw
+                      name: nordrhein-westfalen
+                      deleted: false
+                    - region_id: de-rp
+                      name: rheinland-pfalz
+                      deleted: false
+                      country_id: de
+                    - region_id: de-saa
+                      name: saarland
+                      deleted: false
+                      country_id: de
+                    - region_id: de-san
+                      name: sachsen-anhalt
+                      deleted: false
+                      country_id: de
+                    - region_id: de-sh
+                      name: schleswig-holstein
+                      deleted: false
+                      country_id: de
+                    - region_id: de-th
+                      name: thüringen
+                      deleted: false
+                      country_id: de
+                    - region_id: de-brd
+                      name: bundesrepublik deutschland
+                      deleted: false
+                      country_id: de
+                    links: []
+                    metadata:
+                      current_offset: 0
+                      total_count: 16
+                Example 3 (italian regions with lang=en):
+                  value:
+                    data:
+                    - region_id: it-ab
+                      name: abruzzo
+                      deleted: false
+                      country_id: it
+                    - region_id: it-va
+                      name: aosta valley
+                      deleted: false
+                      country_id: it
+                    - region_id: it-pu
+                      name: apulia
+                      deleted: false
+                      country_id: it
+                    - region_id: it-pat
+                      name: autonomous province of trento
+                      deleted: false
+                      country_id: it
+                    - region_id: it-pab
+                      name: autonomous province of bolzano
+                      deleted: false
+                      country_id: it
+                    - region_id: it-ba
+                      name: basilicata
+                      deleted: false
+                      country_id: it
+                    - region_id: it-cal
+                      name: calabria
+                      deleted: false
+                      country_id: it
+                    - region_id: it-ca
+                      name: campania
+                      deleted: false
+                      country_id: it
+                    - region_id: it-er
+                      name: emilia romagna
+                      deleted: false
+                      country_id: it
+                    - region_id: it-fvg
+                      name: friuli venezia giulia
+                      deleted: false
+                      country_id: it
+                    - region_id: it-la
+                      name: lazio
+                      deleted: false
+                      country_id: it
+                    - region_id: it-li
+                      name: liguria
+                      deleted: false
+                      country_id: it
+                    - region_id: it-lo
+                      name: lombardy
+                      deleted: false
+                      country_id: it
+                    - region_id: it-ma
+                      name: marche
+                      deleted: false
+                      country_id: it
+                    - region_id: it-mo
+                      name: molise
+                      deleted: false
+                      country_id: it
+                    - region_id: it-pi
+                      name: piedmont
+                      deleted: false
+                      country_id: it
+                    - region_id: it-sa
+                      name: sardinia
+                      deleted: false
+                      country_id: it
+                    - region_id: it-si
+                      name: sicily
+                      deleted: false
+                      country_id: it
+                    - region_id: it-to
+                      name: tuscany
+                      deleted: false
+                      country_id: it
+                    - region_id: it-tr
+                      name: trentino-south tyrol
+                      deleted: false
+                      country_id: it
+                    - region_id: it-um
+                      name: umbria
+                      deleted: false
+                      country_id: it
+                    - region_id: it-ve
+                      name: veneto
+                      deleted: false
+                      country_id: it
+                    links:
+                    - href: /geo/countries/it/regions?offset=20&limit=20&lang=en
+                      rel: next
+                    - href: /geo/countries/it/regions?offset=20&limit=20&lang=en
+                      rel: last
+                    metadata:
+                      current_offset: 0
+                      total_count: 22
+              schema:
+                $ref: '#/components/schemas/inline_response_200_1'
+          description: |-
+            List of regions. The names reflect the value of `lang` param.
+
+            The result is always ordered by name
+
+            Example 1 shows italian regions when `lang=it`.
+            Example 2 shows german lander when `lang=de`
+            Example 3 shows italian regions when `lang=en` (notice the different order of the collection, if compared to the results when lang=it)
+
+            See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "401":
+          content:
+            application/json:
+              examples:
+                HTTP 401 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: Some error description
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Unauthorized
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "403":
+          content:
+            application/json:
+              examples:
+                HTTP 403 body:
+                  value:
+                    errors:
+                    - code: ERR403
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Forbidden access
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "404":
+          content:
+            application/json:
+              examples:
+                HTTP 404 body:
+                  value:
+                    errors:
+                    - code: ERR404
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Not found
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "500":
+          content:
+            application/json:
+              examples:
+                HTTP 500 body:
+                  value:
+                    errors:
+                    - code: ERR500
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Error response
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+      summary: Regions by country
+      tags: []
+      x-accepts: application/json
+      x-tags: []
+  /countries/{country_id}/regions/{region_id}/cities:
+    get:
+      description: |-
+        Returns the cities of a region. The names are resolved based on requested language (default `it`).
+
+        The `links` section includes the link to navigate the collection.
+
+        See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+      operationId: cities-by-region
+      parameters:
+      - explode: false
+        in: path
+        name: country_id
+        required: true
+        schema:
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: region_id
+        required: true
+        schema:
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        style: simple
+      - allowEmptyValue: true
+        description: the language in which we want to receive the data, expressed
+          in iso 639-1 format
+        explode: true
+        in: query
+        name: lang
+        required: false
+        schema:
+          default: it
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: form
+      - allowEmptyValue: true
+        description: the page size, for collection APIs
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 20
+          maximum: 50
+          minimum: 0
+          type: number
+        style: form
+      - allowEmptyValue: true
+        description: the offset to start
+        explode: true
+        in: query
+        name: offset
+        required: false
+        schema:
+          default: 0
+          maximum: 100000
+          type: number
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                Example 1 (cities of Lombardy region, Italy):
+                  value:
+                    data:
+                    - city_id: itc9103
+                      name: abbadia cerreto
+                      deleted: false
+                      state_code: "98001"
+                      management_code: A004
+                      zip_codes:
+                      - "26834"
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp002
+                      province_name: lodi
+                      country_id: it
+                      country_name: italia
+                    - city_id: itc10601
+                      name: abbadia lariana
+                      deleted: false
+                      state_code: "97001"
+                      management_code: A005
+                      zip_codes:
+                      - "23821"
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp006
+                      province_name: como
+                      country_id: it
+                      country_name: italia
+                    links:
+                    - href: /geo/countries/it/regions/it-lo/cities?offset=0&limit=20&lang=it
+                      rel: first
+                    - href: /geo/countries/it/regions/it-lo/cities?offset=20&limit=20&lang=it
+                      rel: prev
+                    - href: /geo/countries/it/regions/it-lo/cities?offset=60&limit=20&lang=it
+                      rel: next
+                    - href: /geo/countries/it/regions/it-lo/cities?offset=1500&limit=20&lang=it
+                      rel: last
+                    metadata:
+                      current_offset: 40
+                      total_count: 1506
+                Example 2 (cities of the province of Milan, in Lombardy):
+                  value:
+                    data:
+                    - city_id: itc10104
+                      name: abbiategrasso
+                      deleted: false
+                      state_code: "15002"
+                      management_code: A010
+                      zip_codes:
+                      - "20081"
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp001
+                      province_name: milano
+                      country_id: it
+                      country_name: italia
+                    - city_id: itc10105
+                      name: Albairate
+                      deleted: false
+                      state_code: "15005"
+                      management_code: A127
+                      zip_codes:
+                      - "20080"
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp001
+                      province_name: milano
+                      country_id: it
+                      country_name: italia
+                    links:
+                    - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=0&limit=20&lang=it
+                      rel: first
+                    - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=20&limit=20&lang=it
+                      rel: prev
+                    - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=60&limit=20&lang=it
+                      rel: next
+                    - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=120&limit=20&lang=it
+                      rel: last
+                    metadata:
+                      current_offset: 40
+                      total_count: 134
+              schema:
+                $ref: '#/components/schemas/inline_response_200_2'
+          description: |-
+            List of cities. This API can be called filtering by province of a region of by a region. The result is ordered by name, according to the `lang` param.
+
+            Notice that the examples shows a little subset of data, not the whole set, so consider it as an example. In particular it's a little set of the cities of Lombardy (Example1) and of Milan province (a district of Lombardy, Example 2).
+
+            See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "400":
+          content:
+            application/json:
+              examples:
+                HTTP 400 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: An error message
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Invalid request
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "401":
+          content:
+            application/json:
+              examples:
+                HTTP 401 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: Some error description
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Unauthorized
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "403":
+          content:
+            application/json:
+              examples:
+                HTTP 403 body:
+                  value:
+                    errors:
+                    - code: ERR403
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Forbidden access
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "404":
+          content:
+            application/json:
+              examples:
+                HTTP 404 body:
+                  value:
+                    errors:
+                    - code: ERR404
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Not found
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "500":
+          content:
+            application/json:
+              examples:
+                HTTP 500 body:
+                  value:
+                    errors:
+                    - code: ERR500
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Error response
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+      summary: Cities by region
+      tags: []
+      x-accepts: application/json
+      x-tags: []
+  /countries/{country_id}/regions/{region_id}/cities/{city_id}:
+    get:
+      deprecated: true
+      description: Returns a specific city of a region. The names are resolved based
+        on requested language (default `it`)
+      operationId: cities-by-region-and-city-id
+      parameters:
+      - explode: false
+        in: path
+        name: country_id
+        required: true
+        schema:
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: region_id
+        required: true
+        schema:
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: city_id
+        required: true
+        schema:
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        style: simple
+      - allowEmptyValue: true
+        description: the language in which we want to receive the data, expressed
+          in iso 639-1 format
+        explode: true
+        in: query
+        name: lang
+        required: false
+        schema:
+          default: it
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                Detail of a city (lang=it):
+                  value:
+                    data:
+                      city_id: itc10104
+                      name: linarolo
+                      state_code: "18081"
+                      management_code: E600
+                      zip_codes:
+                      - "27010"
+                      country_id: it
+                      country_name: italia
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp008
+                      province_name: Pavia
+              schema:
+                $ref: '#/components/schemas/inline_response_200_3'
+          description: Detail of single city. Region, Province (if available) and
+            Country are resolved
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "400":
+          content:
+            application/json:
+              examples:
+                HTTP 400 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: An error message
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Invalid request
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "401":
+          content:
+            application/json:
+              examples:
+                HTTP 401 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: Some error description
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Unauthorized
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "403":
+          content:
+            application/json:
+              examples:
+                HTTP 403 body:
+                  value:
+                    errors:
+                    - code: ERR403
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Forbidden access
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "404":
+          content:
+            application/json:
+              examples:
+                HTTP 404 body:
+                  value:
+                    errors:
+                    - code: ERR404
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Not found
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "500":
+          content:
+            application/json:
+              examples:
+                HTTP 500 body:
+                  value:
+                    errors:
+                    - code: ERR500
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Error response
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+      summary: City detail by city ID and region
+      tags: []
+      x-accepts: application/json
+      x-tags: []
+  /countries/{country_id}/regions/{region_id}/provinces:
+    get:
+      description: |-
+        Returns the provinces of a region, useful for those countries in which you want to distinguish region->province->city (like Italy). The names are resolved based on requested language (default `it`).
+
+        The `links` section includes the link to navigate the collection. It could be empty when results number is lower than `limit`.
+
+        See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+      operationId: provinces-by-region
+      parameters:
+      - explode: false
+        in: path
+        name: country_id
+        required: true
+        schema:
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: region_id
+        required: true
+        schema:
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        style: simple
+      - allowEmptyValue: true
+        description: the language in which we want to receive the data, expressed
+          in iso 639-1 format
+        explode: true
+        in: query
+        name: lang
+        required: false
+        schema:
+          default: it
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: form
+      - allowEmptyValue: true
+        description: the offset to start
+        explode: true
+        in: query
+        name: offset
+        required: false
+        schema:
+          default: 0
+          maximum: 100000
+          type: number
+        style: form
+      - allowEmptyValue: true
+        description: the page size, for collection APIs
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 20
+          maximum: 50
+          minimum: 0
+          type: number
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                List of provinces of Lombardy (Italy), with lang=it:
+                  value:
+                    data:
+                    - province_id: itp003
+                      name: bergamo
+                      deleted: false
+                      code: BG
+                      country_id: it
+                      region_id: it-lo
+                    - province_id: itp800
+                      name: brescia
+                      deleted: false
+                      code: BS
+                      country_id: it
+                      region_id: it-lo
+                    - province_id: itp006
+                      name: como
+                      deleted: false
+                      code: CO
+                      country_id: it
+                      region_id: it-lo
+                    - province_id: itp009
+                      name: cremona
+                      deleted: false
+                      code: CR
+                      country_id: it
+                      region_id: it-lo
+                    - province_id: itp007
+                      name: lecco
+                      deleted: false
+                      code: LC
+                      country_id: it
+                      region_id: it-lo
+                    - province_id: itp002
+                      name: lodi
+                      deleted: false
+                      code: LO
+                      country_id: it
+                      region_id: it-lo
+                    - province_id: itp010
+                      name: mantova
+                      deleted: false
+                      code: MN
+                      country_id: it
+                      region_id: it-lo
+                    - province_id: itp001
+                      name: milano
+                      deleted: false
+                      code: MI
+                      country_id: it
+                      region_id: it-lo
+                    - province_id: itp004
+                      name: monza e della brianza
+                      deleted: false
+                      code: MB
+                      country_id: it
+                      region_id: it-lo
+                    - province_id: itp008
+                      name: pavia
+                      deleted: false
+                      code: PV
+                      country_id: it
+                      region_id: it-lo
+                    - province_id: itp801
+                      name: sondrio
+                      deleted: false
+                      code: SO
+                      country_id: it
+                      region_id: it-lo
+                    - province_id: itp005
+                      name: varese
+                      deleted: false
+                      code: VA
+                      country_id: it
+                      region_id: it-lo
+                    links: []
+                    metadata:
+                      current_offset: 0
+                      total_count: 12
+              schema:
+                $ref: '#/components/schemas/inline_response_200_4'
+          description: |-
+            List of provinces, if supported by specific country, ordered by name. `links` section could be empty given the limited number of results.
+
+            See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "400":
+          content:
+            application/json:
+              examples:
+                HTTP 400 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: An error message
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Invalid request
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "401":
+          content:
+            application/json:
+              examples:
+                HTTP 401 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: Some error description
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Unauthorized
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "403":
+          content:
+            application/json:
+              examples:
+                HTTP 403 body:
+                  value:
+                    errors:
+                    - code: ERR403
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Forbidden access
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "404":
+          content:
+            application/json:
+              examples:
+                HTTP 404 body:
+                  value:
+                    errors:
+                    - code: ERR404
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Not found
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "500":
+          content:
+            application/json:
+              examples:
+                HTTP 500 body:
+                  value:
+                    errors:
+                    - code: ERR500
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Error response
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+      summary: Provinces by region
+      tags: []
+      x-accepts: application/json
+      x-tags: []
+  /countries/{country_id}/regions/{region_id}/provinces/{province_id}/cities:
+    get:
+      description: |-
+        Retrieves the cities of a province. Useful for countries, like Italy, which distinguishes region and province. The names are resolved based on requested language (default `it`).
+
+        The `links` section includes the link to navigate the collection.
+
+        See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+      operationId: get-api-geo-countries-country_code-regions-region_code-provinces-province_code-cities
+      parameters:
+      - explode: false
+        in: path
+        name: country_id
+        required: true
+        schema:
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: region_id
+        required: true
+        schema:
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: province_id
+        required: true
+        schema:
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        style: simple
+      - allowEmptyValue: true
+        description: the language in which we want to receive the data, expressed
+          in iso 639-1 format
+        explode: true
+        in: query
+        name: lang
+        required: false
+        schema:
+          default: it
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: form
+      - allowEmptyValue: true
+        description: the offset to start
+        explode: true
+        in: query
+        name: offset
+        required: false
+        schema:
+          default: 0
+          maximum: 100000
+          type: number
+        style: form
+      - allowEmptyValue: true
+        description: the page size, for collection APIs
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 20
+          maximum: 50
+          minimum: 0
+          type: number
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                Example 1 (cities of Lombardy region, Italy):
+                  value:
+                    data:
+                    - city_id: itc9103
+                      name: abbadia cerreto
+                      deleted: false
+                      state_code: "98001"
+                      management_code: A004
+                      zip_codes:
+                      - "26834"
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp002
+                      province_name: lodi
+                      country_id: it
+                      country_name: italia
+                    - city_id: itc10601
+                      name: abbadia lariana
+                      deleted: false
+                      state_code: "97001"
+                      management_code: A005
+                      zip_codes:
+                      - "23821"
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp006
+                      province_name: como
+                      country_id: it
+                      country_name: italia
+                    links:
+                    - href: /geo/countries/it/regions/it-lo/cities?offset=0&limit=20&lang=it
+                      rel: first
+                    - href: /geo/countries/it/regions/it-lo/cities?offset=20&limit=20&lang=it
+                      rel: prev
+                    - href: /geo/countries/it/regions/it-lo/cities?offset=60&limit=20&lang=it
+                      rel: next
+                    - href: /geo/countries/it/regions/it-lo/cities?offset=1500&limit=20&lang=it
+                      rel: last
+                    metadata:
+                      current_offset: 40
+                      total_count: 1506
+                Example 2 (cities of the province of Milan, in Lombardy):
+                  value:
+                    data:
+                    - city_id: itc10104
+                      name: abbiategrasso
+                      deleted: false
+                      state_code: "15002"
+                      management_code: A010
+                      zip_codes:
+                      - "20081"
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp001
+                      province_name: milano
+                      country_id: it
+                      country_name: italia
+                    - city_id: itc10105
+                      name: Albairate
+                      deleted: false
+                      state_code: "15005"
+                      management_code: A127
+                      zip_codes:
+                      - "20080"
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp001
+                      province_name: milano
+                      country_id: it
+                      country_name: italia
+                    links:
+                    - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=0&limit=20&lang=it
+                      rel: first
+                    - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=20&limit=20&lang=it
+                      rel: prev
+                    - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=60&limit=20&lang=it
+                      rel: next
+                    - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=120&limit=20&lang=it
+                      rel: last
+                    metadata:
+                      current_offset: 40
+                      total_count: 134
+              schema:
+                $ref: '#/components/schemas/inline_response_200_2'
+          description: |-
+            List of cities. This API can be called filtering by province of a region of by a region. The result is ordered by name, according to the `lang` param.
+
+            Notice that the examples shows a little subset of data, not the whole set, so consider it as an example. In particular it's a little set of the cities of Lombardy (Example1) and of Milan province (a district of Lombardy, Example 2).
+
+            See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "400":
+          content:
+            application/json:
+              examples:
+                HTTP 400 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: An error message
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Invalid request
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "401":
+          content:
+            application/json:
+              examples:
+                HTTP 401 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: Some error description
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Unauthorized
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "403":
+          content:
+            application/json:
+              examples:
+                HTTP 403 body:
+                  value:
+                    errors:
+                    - code: ERR403
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Forbidden access
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "404":
+          content:
+            application/json:
+              examples:
+                HTTP 404 body:
+                  value:
+                    errors:
+                    - code: ERR404
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Not found
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "500":
+          content:
+            application/json:
+              examples:
+                HTTP 500 body:
+                  value:
+                    errors:
+                    - code: ERR500
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Error response
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+      summary: Cities by region and province
+      tags: []
+      x-accepts: application/json
+      x-tags: []
+  /countries/{country_id}/regions/{region_id}/provinces/{province_id}/cities/{city_id}:
+    get:
+      deprecated: true
+      description: Retrieves the cities of a province. Useful for countries, like
+        Italy, which distinguishes region and province. The names are resolved based
+        on requested language (default `it`)
+      operationId: city-by-city-id-and-province
+      parameters:
+      - explode: false
+        in: path
+        name: country_id
+        required: true
+        schema:
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: region_id
+        required: true
+        schema:
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: province_id
+        required: true
+        schema:
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: city_id
+        required: true
+        schema:
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        style: simple
+      - allowEmptyValue: true
+        description: the language in which we want to receive the data, expressed
+          in iso 639-1 format
+        explode: true
+        in: query
+        name: lang
+        required: false
+        schema:
+          default: it
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                Detail of a city (lang=it):
+                  value:
+                    data:
+                      city_id: itc10104
+                      name: linarolo
+                      state_code: "18081"
+                      management_code: E600
+                      zip_codes:
+                      - "27010"
+                      country_id: it
+                      country_name: italia
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp008
+                      province_name: Pavia
+              schema:
+                $ref: '#/components/schemas/inline_response_200_3'
+          description: Detail of single city. Region, Province (if available) and
+            Country are resolved
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "400":
+          content:
+            application/json:
+              examples:
+                HTTP 400 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: An error message
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Invalid request
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "401":
+          content:
+            application/json:
+              examples:
+                HTTP 401 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: Some error description
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Unauthorized
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "403":
+          content:
+            application/json:
+              examples:
+                HTTP 403 body:
+                  value:
+                    errors:
+                    - code: ERR403
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Forbidden access
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "404":
+          content:
+            application/json:
+              examples:
+                HTTP 404 body:
+                  value:
+                    errors:
+                    - code: ERR404
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Not found
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "500":
+          content:
+            application/json:
+              examples:
+                HTTP 500 body:
+                  value:
+                    errors:
+                    - code: ERR500
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Error response
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+      summary: City detail by city ID, region and province
+      tags: []
+      x-accepts: application/json
+      x-tags: []
+  /cities/{city_id}:
+    get:
+      description: |-
+        City detail, reached directly with `city_id` (which should be unique).
+
+        This API provides references to country/region/province already resolved, in the right language according to `lang` param.
+
+        **TODO** understand if this API is really needed, maybe not!
+      operationId: get-geo-cities-city_id
+      parameters:
+      - description: city_id
+        explode: false
+        in: path
+        name: city_id
+        required: true
+        schema:
+          maxLength: 10
+          pattern: '[A-Za-z0-9-_]+'
+          type: string
+        style: simple
+      - allowEmptyValue: true
+        description: the language in which we want to receive the data, expressed
+          in iso 639-1 format
+        explode: true
+        in: query
+        name: lang
+        required: false
+        schema:
+          default: it
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                Detail of a city (lang=it):
+                  value:
+                    data:
+                      city_id: itc10104
+                      name: linarolo
+                      state_code: "18081"
+                      management_code: E600
+                      zip_codes:
+                      - "27010"
+                      country_id: it
+                      country_name: italia
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp008
+                      province_name: Pavia
+              schema:
+                $ref: '#/components/schemas/inline_response_200_3'
+          description: Detail of single city. Region, Province (if available) and
+            Country are resolved
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "401":
+          content:
+            application/json:
+              examples:
+                HTTP 401 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: Some error description
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Unauthorized
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "403":
+          content:
+            application/json:
+              examples:
+                HTTP 403 body:
+                  value:
+                    errors:
+                    - code: ERR403
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Forbidden access
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "404":
+          content:
+            application/json:
+              examples:
+                HTTP 404 body:
+                  value:
+                    errors:
+                    - code: ERR404
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Not found
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "500":
+          content:
+            application/json:
+              examples:
+                HTTP 500 body:
+                  value:
+                    errors:
+                    - code: ERR500
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Error response
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+      summary: City by ID
+      tags: []
+      x-accepts: application/json
+      x-tags: []
+  /tax-code-validation:
+    put:
+      description: "Validate a tax code. This feature can be supported only for some\
+        \ countries, not for all. If not supported API returns `HTTP 501 - Not implemented`.\
+        \ \n\nIt returns the decoded city and region names in the requested language,\
+        \ according to the see `lang` query param."
+      operationId: validate-tax-code
+      parameters:
+      - allowEmptyValue: true
+        description: the language in which we want to receive the data, expressed
+          in iso 639-1 format
+        explode: true
+        in: query
+        name: lang
+        required: false
+        schema:
+          default: it
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: form
+      requestBody:
+        $ref: '#/components/requestBodies/inline_object'
+        content:
+          application/json:
+            schema:
+              properties:
+                country_id:
+                  maxLength: 2
+                  pattern: '[A-Za-z]{2}'
+                  type: string
+                tax_code:
+                  maxLength: 20
+                  pattern: '[A-Za-z0-9]+'
+                  type: string
+              required:
+              - country_id
+              - tax_code
+              type: object
+        description: Body of tax code validation PUT endpoint
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                Italian Tax Code resolution:
+                  value:
+                    data:
+                      tax_code: AAABBB80R10G388H
+                      last_name: AAA
+                      first_name: BBB
+                      sex: M
+                      birth_date: 1980-10-10
+                      birth_region: Lombardia
+                      birth_province: Pavia
+                      birth_city: Pavia
+                      birth_city_management_code: G388
+                      birth_city_state_code: "18110"
+                      control_chars: H
+              schema:
+                $ref: '#/components/schemas/inline_response_200_5'
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                HTTP 400 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: An error message
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Invalid request
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "401":
+          content:
+            application/json:
+              examples:
+                HTTP 401 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: Some error description
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Unauthorized
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "403":
+          content:
+            application/json:
+              examples:
+                HTTP 403 body:
+                  value:
+                    errors:
+                    - code: ERR403
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Forbidden access
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "404":
+          content:
+            application/json:
+              examples:
+                HTTP 404 body:
+                  value:
+                    errors:
+                    - code: ERR404
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Not found
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "500":
+          content:
+            application/json:
+              examples:
+                HTTP 500 body:
+                  value:
+                    errors:
+                    - code: ERR500
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Error response
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "501":
+          content:
+            application/json:
+              examples:
+                HTTP 501 body:
+                  value:
+                    errors:
+                    - code: ERR501
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Not implemented
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+      summary: Validate tax code
+      x-contentType: application/json
+      x-accepts: application/json
+  /cities/search:
+    post:
+      deprecated: true
+      description: |-
+        Search for cities, given
+
+        - `region name`
+        - `province name`
+        - `city name`
+
+        and `country_id` which is mandatory in order to restrict always the search to a country and not to the whole world. None of the other properties is mandatory but at least 1 of `region_name`, `province_name` or `city_name` should be populated to avoid a `HTTP 400`.
+
+        **It's main use is to validate data of excel spreadsheet, in which the name of regions, provinces and cities are written "as is", without use of ID. This API is deprecated, because it supports a validation feature that will be removed in next releases.**
+
+        As you may guess from the name of the criterias, this API works 'by name' not 'by id' so, when you want to perform a request like the following, names that should be passed according to `lang` param. Put it shortly, if you pass `lang=it` you should pass the names in italian language.
+
+        ```bash
+        curl -X POST "http://host:port/geo/cities/search?lang=it&offset=0&limit=20" -H 'auth_header' \
+        -d '{
+          "country_id":"it",
+          "region_name":"lombardia",
+          "province_name":"milano"
+        }'
+        ```
+
+        Notiche that the `lang` parameter os not tied to `country_id`. You can perform a request like the following to obtain, with names translated in italian language, the names of all the cities of German region called (in italian) *Baviera*.
+
+        ```bash
+        curl -X POST "http://host:port/geo/cities/search?lang=it&offset=0&limit=20" -H 'auth_header' \
+        -d '{
+          "country_id":"de",
+          "region_name":"baviera"
+        }'
+        ```
+
+        See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+      operationId: post-cities-search
+      parameters:
+      - allowEmptyValue: true
+        description: the language in which we want to receive the data, expressed
+          in iso 639-1 format
+        explode: true
+        in: query
+        name: lang
+        required: false
+        schema:
+          default: it
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        style: form
+      - allowEmptyValue: true
+        description: the offset to start
+        explode: true
+        in: query
+        name: offset
+        required: false
+        schema:
+          default: 0
+          maximum: 100000
+          type: number
+        style: form
+      - allowEmptyValue: true
+        description: the page size, for collection APIs
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 20
+          maximum: 50
+          minimum: 0
+          type: number
+        style: form
+      requestBody:
+        $ref: '#/components/requestBodies/inline_object_1'
+        content:
+          application/json:
+            schema:
+              properties:
+                country_id:
+                  maxLength: 2
+                  pattern: '[A-Za-z]{2}'
+                  type: string
+                region_name:
+                  maxLength: 100
+                  pattern: '[A-Za-z0-9 ,''-]+'
+                  type: string
+                province_name:
+                  maxLength: 100
+                  pattern: '[A-Za-z0-9 ,''-]+'
+                  type: string
+                city_name:
+                  maxLength: 100
+                  pattern: '[A-Za-z0-9 ,''-]+'
+                  type: string
+              required:
+              - country_id
+              type: object
+        description: |-
+          The body of the endpoint that allows to query the database city by name.
+          None of the properties, except for `country_id`, is mandatory, but at least one should be populated, in order to avoid to retrieve all cities of a country.
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                Example 1 (cities of Lombardy region, Italy):
+                  value:
+                    data:
+                    - city_id: itc9103
+                      name: abbadia cerreto
+                      deleted: false
+                      state_code: "98001"
+                      management_code: A004
+                      zip_codes:
+                      - "26834"
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp002
+                      province_name: lodi
+                      country_id: it
+                      country_name: italia
+                    - city_id: itc10601
+                      name: abbadia lariana
+                      deleted: false
+                      state_code: "97001"
+                      management_code: A005
+                      zip_codes:
+                      - "23821"
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp006
+                      province_name: como
+                      country_id: it
+                      country_name: italia
+                    links:
+                    - href: /geo/countries/it/regions/it-lo/cities?offset=0&limit=20&lang=it
+                      rel: first
+                    - href: /geo/countries/it/regions/it-lo/cities?offset=20&limit=20&lang=it
+                      rel: prev
+                    - href: /geo/countries/it/regions/it-lo/cities?offset=60&limit=20&lang=it
+                      rel: next
+                    - href: /geo/countries/it/regions/it-lo/cities?offset=1500&limit=20&lang=it
+                      rel: last
+                    metadata:
+                      current_offset: 40
+                      total_count: 1506
+                Example 2 (cities of the province of Milan, in Lombardy):
+                  value:
+                    data:
+                    - city_id: itc10104
+                      name: abbiategrasso
+                      deleted: false
+                      state_code: "15002"
+                      management_code: A010
+                      zip_codes:
+                      - "20081"
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp001
+                      province_name: milano
+                      country_id: it
+                      country_name: italia
+                    - city_id: itc10105
+                      name: Albairate
+                      deleted: false
+                      state_code: "15005"
+                      management_code: A127
+                      zip_codes:
+                      - "20080"
+                      region_id: it-lo
+                      region_name: lombardia
+                      province_id: itp001
+                      province_name: milano
+                      country_id: it
+                      country_name: italia
+                    links:
+                    - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=0&limit=20&lang=it
+                      rel: first
+                    - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=20&limit=20&lang=it
+                      rel: prev
+                    - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=60&limit=20&lang=it
+                      rel: next
+                    - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=120&limit=20&lang=it
+                      rel: last
+                    metadata:
+                      current_offset: 40
+                      total_count: 134
+              schema:
+                $ref: '#/components/schemas/inline_response_200_2'
+          description: |-
+            List of cities. This API can be called filtering by province of a region of by a region. The result is ordered by name, according to the `lang` param.
+
+            Notice that the examples shows a little subset of data, not the whole set, so consider it as an example. In particular it's a little set of the cities of Lombardy (Example1) and of Milan province (a district of Lombardy, Example 2).
+
+            See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "400":
+          content:
+            application/json:
+              examples:
+                HTTP 400 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: An error message
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Invalid request
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "401":
+          content:
+            application/json:
+              examples:
+                HTTP 401 body:
+                  value:
+                    errors:
+                    - code: ERR001
+                      message: Some error description
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Unauthorized
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "403":
+          content:
+            application/json:
+              examples:
+                HTTP 403 body:
+                  value:
+                    errors:
+                    - code: ERR403
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Forbidden access
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+        "404":
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              examples:
+                HTTP 500 body:
+                  value:
+                    errors:
+                    - code: ERR500
+                      message: Some error
+              schema:
+                $ref: '#/components/schemas/Errors'
+          description: Error response
+          headers:
+            X-RateLimit-Limit:
+              explode: false
+              schema:
+                maxLength: 512
+                pattern: ^[A-Za-z0-9-_]+
+                type: string
+              style: simple
+      summary: Search and validate cities
+      x-contentType: application/json
+      x-accepts: application/json
+components:
+  parameters:
+    lang:
+      allowEmptyValue: true
+      description: the language in which we want to receive the data, expressed in
+        iso 639-1 format
+      explode: true
+      in: query
+      name: lang
+      required: false
+      schema:
+        default: it
+        maxLength: 2
+        pattern: '[A-Za-z]{2}'
+        type: string
+      style: form
+    limit:
+      allowEmptyValue: true
+      description: the page size, for collection APIs
+      explode: true
+      in: query
+      name: limit
+      required: false
+      schema:
+        default: 20
+        maximum: 50
+        minimum: 0
+        type: number
+      style: form
+    offset:
+      allowEmptyValue: true
+      description: the offset to start
+      explode: true
+      in: query
+      name: offset
+      required: false
+      schema:
+        default: 0
+        maximum: 100000
+        type: number
+      style: form
+  requestBodies:
+    inline_object:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_object'
+    inline_object_1:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_object_1'
+  responses:
+    "400":
+      content:
+        application/json:
+          examples:
+            HTTP 400 body:
+              value:
+                errors:
+                - code: ERR001
+                  message: An error message
+          schema:
+            $ref: '#/components/schemas/Errors'
+      description: Invalid request
+      headers:
+        X-RateLimit-Limit:
+          explode: false
+          schema:
+            maxLength: 512
+            pattern: ^[A-Za-z0-9-_]+
+            type: string
+          style: simple
+    "401":
+      content:
+        application/json:
+          examples:
+            HTTP 401 body:
+              value:
+                errors:
+                - code: ERR001
+                  message: Some error description
+          schema:
+            $ref: '#/components/schemas/Errors'
+      description: Unauthorized
+      headers:
+        X-RateLimit-Limit:
+          explode: false
+          schema:
+            maxLength: 512
+            pattern: ^[A-Za-z0-9-_]+
+            type: string
+          style: simple
+    "403":
+      content:
+        application/json:
+          examples:
+            HTTP 403 body:
+              value:
+                errors:
+                - code: ERR403
+                  message: Some error
+          schema:
+            $ref: '#/components/schemas/Errors'
+      description: Forbidden access
+      headers:
+        X-RateLimit-Limit:
+          explode: false
+          schema:
+            maxLength: 512
+            pattern: ^[A-Za-z0-9-_]+
+            type: string
+          style: simple
+    "404":
+      content:
+        application/json:
+          examples:
+            HTTP 404 body:
+              value:
+                errors:
+                - code: ERR404
+                  message: Some error
+          schema:
+            $ref: '#/components/schemas/Errors'
+      description: Not found
+      headers:
+        X-RateLimit-Limit:
+          explode: false
+          schema:
+            maxLength: 512
+            pattern: ^[A-Za-z0-9-_]+
+            type: string
+          style: simple
+    "500":
+      content:
+        application/json:
+          examples:
+            HTTP 500 body:
+              value:
+                errors:
+                - code: ERR500
+                  message: Some error
+          schema:
+            $ref: '#/components/schemas/Errors'
+      description: Error response
+      headers:
+        X-RateLimit-Limit:
+          explode: false
+          schema:
+            maxLength: 512
+            pattern: ^[A-Za-z0-9-_]+
+            type: string
+          style: simple
+    "501":
+      content:
+        application/json:
+          examples:
+            HTTP 501 body:
+              value:
+                errors:
+                - code: ERR501
+                  message: Some error
+          schema:
+            $ref: '#/components/schemas/Errors'
+      description: Not implemented
+      headers:
+        X-RateLimit-Limit:
+          explode: false
+          schema:
+            maxLength: 512
+            pattern: ^[A-Za-z0-9-_]+
+            type: string
+          style: simple
+    Countries:
+      content:
+        application/json:
+          examples:
+            Example 1 (api called with lang=en):
+              value:
+                data:
+                - country_id: it
+                  name: italy
+                  phone_code: "39"
+                  deleted: false
+                - country_id: es
+                  name: spain
+                  phone_code: "34"
+                  deleted: false
+                - country_id: de
+                  name: germany
+                  phone_code: "49"
+                  deleted: false
+                links:
+                - href: /geo/countries?offset=0&limit=20&lang=en
+                  rel: first
+                - href: /geo/countries?offset=20&limit=20&lang=en
+                  rel: prev
+                - href: /geo/countries?offset=60&limit=20&lang=en
+                  rel: next
+                - href: /geo/countries?offset=230&limit=20&lang=en
+                  rel: last
+                metadata:
+                  current_offset: 40
+                  total_count: 239
+            Example 2 (api called with lang=it):
+              value:
+                data:
+                - country_id: it
+                  name: italia
+                  phone_code: "39"
+                  deleted: false
+                - country_id: es
+                  name: spagna
+                  deleted: false
+                  phone_code: "34"
+                - country_id: de
+                  name: germania
+                  deleted: false
+                  phone_code: "49"
+                links:
+                - href: /geo/countries?offset=0&limit=20&lang=it
+                  rel: first
+                - href: /geo/countries?offset=20&limit=20&lang=it
+                  rel: prev
+                - href: /geo/countries?offset=60&limit=20&lang=it
+                  rel: next
+                - null
+                - href: /geo/countries?offset=230&limit=20&lang=it
+                  rel: last
+                metadata:
+                  current_offset: 40
+                  total_count: 239
+          schema:
+            $ref: '#/components/schemas/inline_response_200'
+      description: |-
+        List of countries, ordered by name. The examples show a minimal subset of the countries just to give an idea. Let's suppose that in each result we'll find a number of results equals to `limit` parameter.
+
+        See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+
+        The examples shows a subset of the results. Example 1 shows the result when called with `lang=en`, while Example 2 shows the list with `lang=it`.
+      headers:
+        X-RateLimit-Limit:
+          explode: false
+          schema:
+            maxLength: 512
+            pattern: ^[A-Za-z0-9-_]+
+            type: string
+          style: simple
+    City:
+      content:
+        application/json:
+          examples:
+            Detail of a city (lang=it):
+              value:
+                data:
+                  city_id: itc10104
+                  name: linarolo
+                  state_code: "18081"
+                  management_code: E600
+                  zip_codes:
+                  - "27010"
+                  country_id: it
+                  country_name: italia
+                  region_id: it-lo
+                  region_name: lombardia
+                  province_id: itp008
+                  province_name: Pavia
+          schema:
+            $ref: '#/components/schemas/inline_response_200_3'
+      description: Detail of single city. Region, Province (if available) and Country
+        are resolved
+      headers:
+        X-RateLimit-Limit:
+          explode: false
+          schema:
+            maxLength: 512
+            pattern: ^[A-Za-z0-9-_]+
+            type: string
+          style: simple
+    Cities:
+      content:
+        application/json:
+          examples:
+            Example 1 (cities of Lombardy region, Italy):
+              value:
+                data:
+                - city_id: itc9103
+                  name: abbadia cerreto
+                  deleted: false
+                  state_code: "98001"
+                  management_code: A004
+                  zip_codes:
+                  - "26834"
+                  region_id: it-lo
+                  region_name: lombardia
+                  province_id: itp002
+                  province_name: lodi
+                  country_id: it
+                  country_name: italia
+                - city_id: itc10601
+                  name: abbadia lariana
+                  deleted: false
+                  state_code: "97001"
+                  management_code: A005
+                  zip_codes:
+                  - "23821"
+                  region_id: it-lo
+                  region_name: lombardia
+                  province_id: itp006
+                  province_name: como
+                  country_id: it
+                  country_name: italia
+                links:
+                - href: /geo/countries/it/regions/it-lo/cities?offset=0&limit=20&lang=it
+                  rel: first
+                - href: /geo/countries/it/regions/it-lo/cities?offset=20&limit=20&lang=it
+                  rel: prev
+                - href: /geo/countries/it/regions/it-lo/cities?offset=60&limit=20&lang=it
+                  rel: next
+                - href: /geo/countries/it/regions/it-lo/cities?offset=1500&limit=20&lang=it
+                  rel: last
+                metadata:
+                  current_offset: 40
+                  total_count: 1506
+            Example 2 (cities of the province of Milan, in Lombardy):
+              value:
+                data:
+                - city_id: itc10104
+                  name: abbiategrasso
+                  deleted: false
+                  state_code: "15002"
+                  management_code: A010
+                  zip_codes:
+                  - "20081"
+                  region_id: it-lo
+                  region_name: lombardia
+                  province_id: itp001
+                  province_name: milano
+                  country_id: it
+                  country_name: italia
+                - city_id: itc10105
+                  name: Albairate
+                  deleted: false
+                  state_code: "15005"
+                  management_code: A127
+                  zip_codes:
+                  - "20080"
+                  region_id: it-lo
+                  region_name: lombardia
+                  province_id: itp001
+                  province_name: milano
+                  country_id: it
+                  country_name: italia
+                links:
+                - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=0&limit=20&lang=it
+                  rel: first
+                - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=20&limit=20&lang=it
+                  rel: prev
+                - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=60&limit=20&lang=it
+                  rel: next
+                - href: /geo/countries/it/regions/it-lo/provinces/itp001/cities?offset=120&limit=20&lang=it
+                  rel: last
+                metadata:
+                  current_offset: 40
+                  total_count: 134
+          schema:
+            $ref: '#/components/schemas/inline_response_200_2'
+      description: |-
+        List of cities. This API can be called filtering by province of a region of by a region. The result is ordered by name, according to the `lang` param.
+
+        Notice that the examples shows a little subset of data, not the whole set, so consider it as an example. In particular it's a little set of the cities of Lombardy (Example1) and of Milan province (a district of Lombardy, Example 2).
+
+        See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+      headers:
+        X-RateLimit-Limit:
+          explode: false
+          schema:
+            maxLength: 512
+            pattern: ^[A-Za-z0-9-_]+
+            type: string
+          style: simple
+    Regions:
+      content:
+        application/json:
+          examples:
+            Example 1 (italian regions with lang=it):
+              value:
+                data:
+                - region_id: it-ab
+                  name: abruzzo
+                  deleted: false
+                  country_id: it
+                - region_id: it-ba
+                  name: basilicata
+                  deleted: false
+                  country_id: it
+                - region_id: it-cal
+                  name: Calabria
+                  deleted: false
+                  country_id: it
+                - region_id: it-ca
+                  name: Campania
+                  deleted: false
+                  country_id: it
+                - region_id: it-er
+                  name: emilia romagna
+                  deleted: false
+                  country_id: it
+                - region_id: it-fvg
+                  name: friuli venezia giulia
+                  deleted: false
+                  country_id: it
+                - region_id: it-la
+                  name: lazio
+                  deleted: false
+                  country_id: it
+                - region_id: it-li
+                  name: liguria
+                  deleted: false
+                  country_id: it
+                - region_id: it-lo
+                  name: lombardia
+                  deleted: false
+                  country_id: it
+                - region_id: it-ma
+                  name: marche
+                  deleted: false
+                  country_id: it
+                - region_id: it-mo
+                  name: molise
+                  deleted: false
+                  country_id: it
+                - region_id: it-pi
+                  name: piemonte
+                  deleted: false
+                  country_id: it
+                - region_id: it-pat
+                  name: provincia autonoma di trento
+                  deleted: false
+                  country_id: it
+                - region_id: it-pab
+                  name: provincia autonoma di bolzano
+                  deleted: false
+                  country_id: it
+                - region_id: it-pu
+                  name: puglia
+                  deleted: false
+                  country_id: it
+                - region_id: it-sa
+                  name: sardegna
+                  deleted: false
+                  country_id: it
+                - region_id: it-si
+                  name: sicilia
+                  deleted: false
+                  country_id: it
+                - region_id: it-to
+                  name: Toscana
+                  deleted: false
+                  country_id: it
+                - region_id: it-tr
+                  name: trentino
+                  deleted: false
+                  country_id: it
+                - region_id: it-um
+                  name: umbria
+                  deleted: false
+                  country_id: it
+                - region_id: it-va
+                  name: valle d'aosta
+                  deleted: false
+                  country_id: it
+                - region_id: it-ve
+                  name: veneto
+                  deleted: false
+                  country_id: it
+                links:
+                - href: /geo/countries/it/regions?offset=20&limit=20&lang=it
+                  rel: next
+                - href: /geo/countries/it/regions?offset=20&limit=20&lang=it
+                  rel: last
+                metadata:
+                  current_offset: 0
+                  total_count: 22
+            Example 2 (german regions, or lander, with lang=de):
+              value:
+                data:
+                - region_id: de-bw
+                  name: baden-württemberg
+                  deleted: false
+                  country_id: de
+                - region_id: de-ba
+                  name: bayern
+                  deleted: false
+                  country_id: de
+                - region_id: de-be
+                  name: berlin
+                  deleted: false
+                - region_id: de-br
+                  name: brandenburg
+                  deleted: false
+                  country_id: de
+                - region_id: DE005
+                  name: bremen
+                  deleted: false
+                  country_id: de
+                - region_id: de-ha
+                  name: hamburg
+                  deleted: false
+                - region_id: de-he
+                  name: hessen
+                  deleted: false
+                  country_id: de
+                - region_id: de-mv
+                  name: mecklenburg-vorpommern
+                  deleted: false
+                  country_id: de
+                - region_id: de-ni
+                  name: niedersachsen
+                  deleted: false
+                  country_id: de
+                - region_id: de-nw
+                  name: nordrhein-westfalen
+                  deleted: false
+                - region_id: de-rp
+                  name: rheinland-pfalz
+                  deleted: false
+                  country_id: de
+                - region_id: de-saa
+                  name: saarland
+                  deleted: false
+                  country_id: de
+                - region_id: de-san
+                  name: sachsen-anhalt
+                  deleted: false
+                  country_id: de
+                - region_id: de-sh
+                  name: schleswig-holstein
+                  deleted: false
+                  country_id: de
+                - region_id: de-th
+                  name: thüringen
+                  deleted: false
+                  country_id: de
+                - region_id: de-brd
+                  name: bundesrepublik deutschland
+                  deleted: false
+                  country_id: de
+                links: []
+                metadata:
+                  current_offset: 0
+                  total_count: 16
+            Example 3 (italian regions with lang=en):
+              value:
+                data:
+                - region_id: it-ab
+                  name: abruzzo
+                  deleted: false
+                  country_id: it
+                - region_id: it-va
+                  name: aosta valley
+                  deleted: false
+                  country_id: it
+                - region_id: it-pu
+                  name: apulia
+                  deleted: false
+                  country_id: it
+                - region_id: it-pat
+                  name: autonomous province of trento
+                  deleted: false
+                  country_id: it
+                - region_id: it-pab
+                  name: autonomous province of bolzano
+                  deleted: false
+                  country_id: it
+                - region_id: it-ba
+                  name: basilicata
+                  deleted: false
+                  country_id: it
+                - region_id: it-cal
+                  name: calabria
+                  deleted: false
+                  country_id: it
+                - region_id: it-ca
+                  name: campania
+                  deleted: false
+                  country_id: it
+                - region_id: it-er
+                  name: emilia romagna
+                  deleted: false
+                  country_id: it
+                - region_id: it-fvg
+                  name: friuli venezia giulia
+                  deleted: false
+                  country_id: it
+                - region_id: it-la
+                  name: lazio
+                  deleted: false
+                  country_id: it
+                - region_id: it-li
+                  name: liguria
+                  deleted: false
+                  country_id: it
+                - region_id: it-lo
+                  name: lombardy
+                  deleted: false
+                  country_id: it
+                - region_id: it-ma
+                  name: marche
+                  deleted: false
+                  country_id: it
+                - region_id: it-mo
+                  name: molise
+                  deleted: false
+                  country_id: it
+                - region_id: it-pi
+                  name: piedmont
+                  deleted: false
+                  country_id: it
+                - region_id: it-sa
+                  name: sardinia
+                  deleted: false
+                  country_id: it
+                - region_id: it-si
+                  name: sicily
+                  deleted: false
+                  country_id: it
+                - region_id: it-to
+                  name: tuscany
+                  deleted: false
+                  country_id: it
+                - region_id: it-tr
+                  name: trentino-south tyrol
+                  deleted: false
+                  country_id: it
+                - region_id: it-um
+                  name: umbria
+                  deleted: false
+                  country_id: it
+                - region_id: it-ve
+                  name: veneto
+                  deleted: false
+                  country_id: it
+                links:
+                - href: /geo/countries/it/regions?offset=20&limit=20&lang=en
+                  rel: next
+                - href: /geo/countries/it/regions?offset=20&limit=20&lang=en
+                  rel: last
+                metadata:
+                  current_offset: 0
+                  total_count: 22
+          schema:
+            $ref: '#/components/schemas/inline_response_200_1'
+      description: |-
+        List of regions. The names reflect the value of `lang` param.
+
+        The result is always ordered by name
+
+        Example 1 shows italian regions when `lang=it`.
+        Example 2 shows german lander when `lang=de`
+        Example 3 shows italian regions when `lang=en` (notice the different order of the collection, if compared to the results when lang=it)
+
+        See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+      headers:
+        X-RateLimit-Limit:
+          explode: false
+          schema:
+            maxLength: 512
+            pattern: ^[A-Za-z0-9-_]+
+            type: string
+          style: simple
+    Provinces:
+      content:
+        application/json:
+          examples:
+            List of provinces of Lombardy (Italy), with lang=it:
+              value:
+                data:
+                - province_id: itp003
+                  name: bergamo
+                  deleted: false
+                  code: BG
+                  country_id: it
+                  region_id: it-lo
+                - province_id: itp800
+                  name: brescia
+                  deleted: false
+                  code: BS
+                  country_id: it
+                  region_id: it-lo
+                - province_id: itp006
+                  name: como
+                  deleted: false
+                  code: CO
+                  country_id: it
+                  region_id: it-lo
+                - province_id: itp009
+                  name: cremona
+                  deleted: false
+                  code: CR
+                  country_id: it
+                  region_id: it-lo
+                - province_id: itp007
+                  name: lecco
+                  deleted: false
+                  code: LC
+                  country_id: it
+                  region_id: it-lo
+                - province_id: itp002
+                  name: lodi
+                  deleted: false
+                  code: LO
+                  country_id: it
+                  region_id: it-lo
+                - province_id: itp010
+                  name: mantova
+                  deleted: false
+                  code: MN
+                  country_id: it
+                  region_id: it-lo
+                - province_id: itp001
+                  name: milano
+                  deleted: false
+                  code: MI
+                  country_id: it
+                  region_id: it-lo
+                - province_id: itp004
+                  name: monza e della brianza
+                  deleted: false
+                  code: MB
+                  country_id: it
+                  region_id: it-lo
+                - province_id: itp008
+                  name: pavia
+                  deleted: false
+                  code: PV
+                  country_id: it
+                  region_id: it-lo
+                - province_id: itp801
+                  name: sondrio
+                  deleted: false
+                  code: SO
+                  country_id: it
+                  region_id: it-lo
+                - province_id: itp005
+                  name: varese
+                  deleted: false
+                  code: VA
+                  country_id: it
+                  region_id: it-lo
+                links: []
+                metadata:
+                  current_offset: 0
+                  total_count: 12
+          schema:
+            $ref: '#/components/schemas/inline_response_200_4'
+      description: |-
+        List of provinces, if supported by specific country, ordered by name. `links` section could be empty given the limited number of results.
+
+        See [HATEOAS](https://restfulapi.net/hateoas/) for further informations about `links` section.
+      headers:
+        X-RateLimit-Limit:
+          explode: false
+          schema:
+            maxLength: 512
+            pattern: ^[A-Za-z0-9-_]+
+            type: string
+          style: simple
+  schemas:
+    Country:
+      description: Represents a country
+      example:
+        deleted: false
+        name: name
+        country_id: country_id
+        phone_code: phone_code
+      properties:
+        country_id:
+          description: ISO code of the country (it, en, de etc.)
+          maxLength: 10
+          pattern: '[A-Za-z0-9-_]+'
+          type: string
+        name:
+          description: The name reflects the value of 'lang' param
+          maxLength: 100
+          pattern: '[A-Za-z ''-]+'
+          type: string
+        phone_code:
+          description: The phone code of the country (link 39 for Italy)
+          maxLength: 3
+          pattern: '[0-9]*'
+          type: string
+        deleted:
+          default: false
+          description: Set to true is we're managing a deleted country like Yugoslavia
+          type: boolean
+      required:
+      - country_id
+      - name
+      title: Country
+      type: object
+      x-stoplight:
+        id: vpkrf5u530zds
+    Region:
+      description: |-
+        Region / State (for US or other federated countries).
+
+        This API does not force region_id to have a particular format, but implementors have to make sure it will be unique for that region state. It could be a random alphanumeric code ('abc012') or could be something that recalls countries (es 'us-ak' for Alaska, 'it-lo' for Lombardy etc). It is purely an implementor's choice, the important is that the code is unique.
+      example:
+        deleted: false
+        region_id: region_id
+        name: name
+        country_id: country_id
+      properties:
+        region_id:
+          description: The region ID. It MUST identify a region/state in unique way.
+          maxLength: 10
+          pattern: '[A-Za-z0-9-_]+'
+          type: string
+        name:
+          description: The name reflects the value of 'lang' param
+          maxLength: 100
+          pattern: '[A-Za-z ''-]+'
+          type: string
+        deleted:
+          default: false
+          description: Set to true is we're managing a deleted region
+          type: boolean
+        country_id:
+          description: The country ID (ISO)
+          maxLength: 10
+          pattern: '[A-Za-z0-9-_]+'
+          type: string
+      required:
+      - name
+      - region_id
+      title: Region
+      type: object
+      x-stoplight:
+        id: ik33rb3jg6t03
+    Province:
+      description: Province, for countries we need this concept
+      example:
+        deleted: false
+        code: code
+        province_id: province_id
+        name: name
+        region_id: region_id
+        country_id: country_id
+      properties:
+        province_id:
+          description: The province ID. It MUST identify a province in unique way
+          maxLength: 10
+          pattern: '[A-Za-z0-9-_]+'
+          type: string
+        name:
+          description: The name reflects the value of 'lang' param
+          maxLength: 100
+          pattern: '[A-Za-z ''-]+'
+          type: string
+        deleted:
+          default: false
+          description: Set to true is we're managing a deleted province
+          type: boolean
+        code:
+          description: The mnemonical code of the province. For italian provine we
+            have MI, NA, VE and so on
+          maxLength: 5
+          pattern: '[A-Za-z]+'
+          type: string
+        country_id:
+          maxLength: 10
+          pattern: '[A-Za-z0-9-_]+'
+          type: string
+        region_id:
+          maxLength: 10
+          pattern: '[A-Za-z0-9-_]+'
+          type: string
+      required:
+      - code
+      - name
+      - province_id
+      title: Province
+      type: object
+      x-stoplight:
+        id: bwezl8ap9464m
+    City:
+      description: "A city. \n\nA deleted city is a city that no longer exists, possibly\
+        \ for a merge with other cities. Each city should have a unique ID.\n\nGiven\
+        \ that some big cities are associated to more zip codes, the field `zip_codes`\
+        \ is an array."
+      example:
+        inhabitants: 11201
+        extension: 180.07
+        region_id: region_id
+        province_name: province_name
+        deleted: false
+        province_id: province_id
+        name: name
+        country_name: country_name
+        region_name: region_name
+        management_code: management_code
+        state_code: state_code
+        zip_codes:
+        - zip_codes
+        - zip_codes
+        - zip_codes
+        - zip_codes
+        - zip_codes
+        country_id: country_id
+        city_id: city_id
+      properties:
+        city_id:
+          description: The city ID. It MUST identify a city in unique way
+          maxLength: 10
+          pattern: '[A-Za-z0-9-_]+'
+          type: string
+        name:
+          description: The name reflects the value of 'lang' param
+          maxLength: 100
+          pattern: '[A-Za-z ''-]+'
+          type: string
+        zip_codes:
+          description: Some cities spreads through different zip codes, so we treat
+            it as a list
+          items:
+            maxLength: 10
+            pattern: '[0-9]+'
+            type: string
+          maxItems: 100
+          type: array
+        state_code:
+          description: The code used by owning state to identify the city.
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        management_code:
+          description: The code used by authorities to identify the city. In Italy
+            could be ISTAT code (known as 'Codice catastale')
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        deleted:
+          default: false
+          description: Identifies deleted cities, that means cities that are no more
+            valid because of merging with other cities or any other reason
+          type: boolean
+        extension:
+          description: The extension of the city, in square metres
+          example: 180.07
+          minimum: 0
+          type: number
+        inhabitants:
+          description: The inhabitants of the city
+          example: 11201
+          format: int32
+          type: integer
+        country_id:
+          description: ISO code of country
+          maxLength: 10
+          pattern: '[A-Za-z0-9-_]+'
+          type: string
+        country_name:
+          maxLength: 100
+          pattern: '[A-Za-z0-9 -'']+'
+          type: string
+        region_id:
+          description: The ID of the region
+          maxLength: 10
+          pattern: '[A-Za-z0-9-_]+'
+          type: string
+        region_name:
+          maxLength: 100
+          pattern: '[A-Za-z0-9 -'']+'
+          type: string
+        province_id:
+          description: Province ID, can be null when data is not available
+          maxLength: 10
+          pattern: '[A-Za-z0-9-_]+'
+          type: string
+        province_name:
+          maxLength: 100
+          pattern: '[A-Za-z0-9 -'']+'
+          type: string
+      required:
+      - city_id
+      - name
+      title: City
+      type: object
+      x-stoplight:
+        id: g1aqefhz9yjqa
+    TaxCodeOwner:
+      description: The owner of tax code
+      example:
+        birth_province: birth_province
+        control_chars: control_chars
+        tax_code: tax_code
+        birth_region: birth_region
+        birth_city: birth_city
+        birth_city_state_code: birth_city_state_code
+        birth_city_management_code: birth_city_management_code
+        sex: M
+        birth_date: 2000-01-23
+        last_name: last_name
+        first_name: first_name
+      properties:
+        tax_code:
+          maxLength: 20
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        last_name:
+          description: The last name of the owner of tax code, if available
+          maxLength: 100
+          pattern: '[A-Za-z ]+'
+          type: string
+        first_name:
+          description: The first name of the owner of tax code, if available
+          maxLength: 100
+          pattern: '[A-Za-z ]+'
+          type: string
+        sex:
+          description: The sex of the owner of tax code, if available
+          example: M
+          maxLength: 2
+          pattern: '[A-Z]+'
+          type: string
+        birth_date:
+          description: The birth date, in YYYY-mm-dd format
+          format: date
+          maxLength: 10
+          type: string
+        birth_region:
+          description: The name reflects the value of 'lang' param
+          maxLength: 100
+          pattern: '[A-Za-z '']+'
+          type: string
+        birth_province:
+          description: The name reflects the value of 'lang' param
+          maxLength: 100
+          pattern: '[A-Za-z '']+'
+          type: string
+        birth_city:
+          description: The name reflects the value of 'lang' param
+          maxLength: 100
+          pattern: '[A-Za-z '']+'
+          type: string
+        birth_city_management_code:
+          description: if available
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        birth_city_state_code:
+          description: if available
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+        control_chars:
+          description: Additional chars of the tax code, if present
+          maxLength: 10
+          pattern: '[A-Za-z0-9]+'
+          type: string
+      title: TaxCodeOwner
+      type: object
+      x-stoplight:
+        id: 1t9kjpf0tvxrn
+    Error:
+      description: Represents an error
+      properties:
+        code:
+          description: The error code. Can be used to localize the error, if shown
+            to clients
+          maxLength: 6
+          pattern: '[A-Z0-9]+'
+          type: string
+        message:
+          description: The error message
+          maxLength: 100
+          pattern: '[A-Za-z0-9 ,]+'
+          type: string
+      title: Error
+      type: object
+      x-stoplight:
+        id: t9idoy80cfd30
+    Link:
+      description: '  HATEOAS link'
+      example:
+        rel: rel
+        href: https://openapi-generator.tech
+      properties:
+        href:
+          format: uri
+          maxLength: 512
+          type: string
+        rel:
+          maxLength: 20
+          pattern: '[A-Za-z0-9 ]+'
+          type: string
+      title: Link
+      type: object
+      x-stoplight:
+        id: k4ckz809rljnf
+    Metadata:
+      description: Associated with collection responses, but only if needed. As an
+        example, for Province API which will return a small number of results, metadata
+        is quite unuseful.
+      example:
+        current_offset: 8008
+        total_count: 6027
+      properties:
+        current_offset:
+          description: The current offset of the results shown
+          format: int32
+          maximum: 100000
+          minimum: 0
+          type: integer
+        total_count:
+          format: int32
+          maximum: 10000
+          minimum: 0
+          type: integer
+      title: Metadata
+      type: object
+      x-stoplight:
+        id: oib14d6qzb5yt
+    Errors:
+      description: A list of errors
+      properties:
+        errors:
+          items:
+            $ref: '#/components/schemas/Error'
+          maxItems: 20
+          type: array
+      title: Errors
+      type: object
+      x-stoplight:
+        id: 42dh0daenq6h2
+    inline_response_200:
+      example:
+        metadata:
+          current_offset: 8008
+          total_count: 6027
+        data:
+        - deleted: false
+          name: name
+          country_id: country_id
+          phone_code: phone_code
+        - deleted: false
+          name: name
+          country_id: country_id
+          phone_code: phone_code
+        - deleted: false
+          name: name
+          country_id: country_id
+          phone_code: phone_code
+        - deleted: false
+          name: name
+          country_id: country_id
+          phone_code: phone_code
+        - deleted: false
+          name: name
+          country_id: country_id
+          phone_code: phone_code
+        links:
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Country'
+          maxItems: 300
+          type: array
+        links:
+          items:
+            $ref: '#/components/schemas/Link'
+          maxItems: 20
+          type: array
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+      required:
+      - data
+      type: object
+    inline_response_200_1:
+      example:
+        metadata:
+          current_offset: 8008
+          total_count: 6027
+        data:
+        - deleted: false
+          region_id: region_id
+          name: name
+          country_id: country_id
+        - deleted: false
+          region_id: region_id
+          name: name
+          country_id: country_id
+        - deleted: false
+          region_id: region_id
+          name: name
+          country_id: country_id
+        - deleted: false
+          region_id: region_id
+          name: name
+          country_id: country_id
+        - deleted: false
+          region_id: region_id
+          name: name
+          country_id: country_id
+        links:
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Region'
+          maxItems: 200
+          type: array
+        links:
+          items:
+            $ref: '#/components/schemas/Link'
+          type: array
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+      required:
+      - data
+      type: object
+    inline_response_200_2:
+      example:
+        metadata:
+          current_offset: 8008
+          total_count: 6027
+        data:
+        - inhabitants: 11201
+          extension: 180.07
+          region_id: region_id
+          province_name: province_name
+          deleted: false
+          province_id: province_id
+          name: name
+          country_name: country_name
+          region_name: region_name
+          management_code: management_code
+          state_code: state_code
+          zip_codes:
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          country_id: country_id
+          city_id: city_id
+        - inhabitants: 11201
+          extension: 180.07
+          region_id: region_id
+          province_name: province_name
+          deleted: false
+          province_id: province_id
+          name: name
+          country_name: country_name
+          region_name: region_name
+          management_code: management_code
+          state_code: state_code
+          zip_codes:
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          country_id: country_id
+          city_id: city_id
+        - inhabitants: 11201
+          extension: 180.07
+          region_id: region_id
+          province_name: province_name
+          deleted: false
+          province_id: province_id
+          name: name
+          country_name: country_name
+          region_name: region_name
+          management_code: management_code
+          state_code: state_code
+          zip_codes:
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          country_id: country_id
+          city_id: city_id
+        - inhabitants: 11201
+          extension: 180.07
+          region_id: region_id
+          province_name: province_name
+          deleted: false
+          province_id: province_id
+          name: name
+          country_name: country_name
+          region_name: region_name
+          management_code: management_code
+          state_code: state_code
+          zip_codes:
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          country_id: country_id
+          city_id: city_id
+        - inhabitants: 11201
+          extension: 180.07
+          region_id: region_id
+          province_name: province_name
+          deleted: false
+          province_id: province_id
+          name: name
+          country_name: country_name
+          region_name: region_name
+          management_code: management_code
+          state_code: state_code
+          zip_codes:
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          country_id: country_id
+          city_id: city_id
+        links:
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/City'
+          maxItems: 1000
+          type: array
+        links:
+          items:
+            $ref: '#/components/schemas/Link'
+          maxItems: 20
+          type: array
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+      required:
+      - data
+      type: object
+    inline_response_200_3:
+      example:
+        data:
+          inhabitants: 11201
+          extension: 180.07
+          region_id: region_id
+          province_name: province_name
+          deleted: false
+          province_id: province_id
+          name: name
+          country_name: country_name
+          region_name: region_name
+          management_code: management_code
+          state_code: state_code
+          zip_codes:
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          - zip_codes
+          country_id: country_id
+          city_id: city_id
+      properties:
+        data:
+          $ref: '#/components/schemas/City'
+      required:
+      - data
+      type: object
+    inline_response_200_4:
+      example:
+        metadata:
+          current_offset: 8008
+          total_count: 6027
+        data:
+        - deleted: false
+          code: code
+          province_id: province_id
+          name: name
+          region_id: region_id
+          country_id: country_id
+        - deleted: false
+          code: code
+          province_id: province_id
+          name: name
+          region_id: region_id
+          country_id: country_id
+        - deleted: false
+          code: code
+          province_id: province_id
+          name: name
+          region_id: region_id
+          country_id: country_id
+        - deleted: false
+          code: code
+          province_id: province_id
+          name: name
+          region_id: region_id
+          country_id: country_id
+        - deleted: false
+          code: code
+          province_id: province_id
+          name: name
+          region_id: region_id
+          country_id: country_id
+        links:
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+        - rel: rel
+          href: https://openapi-generator.tech
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Province'
+          maxItems: 300
+          type: array
+        links:
+          items:
+            $ref: '#/components/schemas/Link'
+          maxItems: 200
+          type: array
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+      required:
+      - data
+      type: object
+    inline_object:
+      properties:
+        country_id:
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        tax_code:
+          maxLength: 20
+          pattern: '[A-Za-z0-9]+'
+          type: string
+      required:
+      - country_id
+      - tax_code
+      type: object
+    inline_response_200_5:
+      example:
+        data:
+          birth_province: birth_province
+          control_chars: control_chars
+          tax_code: tax_code
+          birth_region: birth_region
+          birth_city: birth_city
+          birth_city_state_code: birth_city_state_code
+          birth_city_management_code: birth_city_management_code
+          sex: M
+          birth_date: 2000-01-23
+          last_name: last_name
+          first_name: first_name
+      properties:
+        data:
+          $ref: '#/components/schemas/TaxCodeOwner'
+      type: object
+    inline_object_1:
+      properties:
+        country_id:
+          maxLength: 2
+          pattern: '[A-Za-z]{2}'
+          type: string
+        region_name:
+          maxLength: 100
+          pattern: '[A-Za-z0-9 ,''-]+'
+          type: string
+        province_name:
+          maxLength: 100
+          pattern: '[A-Za-z0-9 ,''-]+'
+          type: string
+        city_name:
+          maxLength: 100
+          pattern: '[A-Za-z0-9 ,''-]+'
+          type: string
+      required:
+      - country_id
+      type: object
+  securitySchemes:
+    x-geoservice-key:
+      in: header
+      name: api-key
+      type: apiKey
+x-stoplight:
+  id: 3diqa0zi4eurm
+x-internal: false
